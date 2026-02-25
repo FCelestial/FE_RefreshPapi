@@ -1,6 +1,15 @@
 # FE_RefreshPapi 配置文件
 # 定时刷新占位符变量配置
 
+#- 全局占位符：
+#- %ferp_value_xxx% - 显示全局 xxx 的值
+#- %ferp_refresh_time_xxx% - 显示全局 xxx 的最后刷新时间
+#- %ferp_next_refresh_time_xxx% - 显示全局 xxx 的下次刷新时间
+#- 玩家特定占位符：
+#- %ferp_value_player_xxx% - 显示每个玩家自己的 player_xxx 值
+#- %ferp_refresh_time_player_xxx% - 显示当前时间（因为玩家特定占位符未记录刷新时间）
+#- %ferp_next_refresh_time_player_xxx% - 显示 player_xxx 的下次刷新时间
+
 refresh_placeholders:
   # 示例配置 - 服务器在线玩家数计数器
 #  player_count:
