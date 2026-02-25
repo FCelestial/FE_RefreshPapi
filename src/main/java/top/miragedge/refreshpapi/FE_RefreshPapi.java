@@ -184,7 +184,7 @@ public final class FE_RefreshPapi extends JavaPlugin {
                     }
                     return handleSetCommand(sender, targetPlayer, args[2], args[3]);
                 } else {
-                    sender.sendMessage("§c用法: /ferp set [变量名] [数值] 或 /ferp set [玩家名] [变量名] [数值]");
+                    sender.sendMessage("§c用法: /ferp set [玩家名] [变量名] [数值]");
                     return true;
                 }
             case "add":
@@ -200,7 +200,7 @@ public final class FE_RefreshPapi extends JavaPlugin {
                     }
                     return handleAddCommand(sender, targetPlayer, args[2], args[3]);
                 } else {
-                    sender.sendMessage("§c用法: /ferp add [变量名] [数值] 或 /ferp add [玩家名] [变量名] [数值]");
+                    sender.sendMessage("§c用法: /ferp add [玩家名] [变量名] [数值]");
                     return true;
                 }
             case "remove":
@@ -216,7 +216,7 @@ public final class FE_RefreshPapi extends JavaPlugin {
                     }
                     return handleRemoveCommand(sender, targetPlayer, args[2]);
                 } else {
-                    sender.sendMessage("§c用法: /ferp remove [变量名] 或 /ferp remove [玩家名] [变量名]");
+                    sender.sendMessage("§c用法: /ferp remove [玩家名] [变量名]");
                     return true;
                 }
             case "refresh":
@@ -342,10 +342,11 @@ public final class FE_RefreshPapi extends JavaPlugin {
                 
                 if (targetPlayer != null) {
                     sender.sendMessage("§a成功将玩家 " + playerToModify.getName() + " 的变量 " + placeholderName + " 的值增加 " + value + "，当前值为 " + newValue);
-                    if (!sender.getName().equals(playerToModify.getName())) {
-                        playerToModify.sendMessage("§e管理员将您的 " + placeholderName + " 变量值增加了 " + value + "，当前值为 " + newValue);
+                    // if (!sender.getName().equals(playerToModify.getName())) {
+                        // playerToModify.sendMessage("§e管理员将您的 " + placeholderName + " 变量值增加了 " + value + "，当前值为 " + newValue);
                     }
-                } else {
+                // } else {
+                else {
                     sender.sendMessage("§a成功将变量 " + placeholderName + " 的值增加 " + value + "，当前值为 " + newValue);
                 }
             } else {
@@ -413,10 +414,11 @@ public final class FE_RefreshPapi extends JavaPlugin {
             
             if (targetPlayer != null) {
                 sender.sendMessage("§a成功移除玩家 " + playerToModify.getName() + " 的变量 " + placeholderName);
-                if (!sender.getName().equals(playerToModify.getName())) {
-                    playerToModify.sendMessage("§e管理员移除了您的 " + placeholderName + " 变量");
+                // if (!sender.getName().equals(playerToModify.getName())) {
+                    // playerToModify.sendMessage("§e管理员移除了您的 " + placeholderName + " 变量");
                 }
-            } else {
+            // } else {
+            else {
                 sender.sendMessage("§a成功移除变量 " + placeholderName);
             }
         } else {
@@ -464,7 +466,7 @@ public final class FE_RefreshPapi extends JavaPlugin {
             }
             return true;
         } else {
-            sender.sendMessage("§c用法: /ferp refresh * (刷新所有变量) 或 /ferp refresh [变量名] (刷新指定变量)");
+            sender.sendMessage("§c用法: /ferp refresh [变量名]");
             return true;
         }
     }
