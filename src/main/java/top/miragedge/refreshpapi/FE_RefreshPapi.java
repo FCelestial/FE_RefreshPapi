@@ -184,7 +184,7 @@ public final class FE_RefreshPapi extends JavaPlugin {
                     }
                     return handleSetCommand(sender, targetPlayer, args[2], args[3]);
                 } else {
-                    sender.sendMessage("§c用法: /ferp set [玩家名] [变量名] [数值]");
+                    sender.sendMessage("§c用法: /ferp set [变量名] [数值] 或 /ferp set [玩家名] [变量名] [数值]");
                     return true;
                 }
             case "add":
@@ -200,7 +200,7 @@ public final class FE_RefreshPapi extends JavaPlugin {
                     }
                     return handleAddCommand(sender, targetPlayer, args[2], args[3]);
                 } else {
-                    sender.sendMessage("§c用法: /ferp add [玩家名] [变量名] [数值]");
+                    sender.sendMessage("§c用法: /ferp add [变量名] [数值] 或 /ferp add [玩家名] [变量名] [数值]");
                     return true;
                 }
             case "remove":
@@ -216,15 +216,11 @@ public final class FE_RefreshPapi extends JavaPlugin {
                     }
                     return handleRemoveCommand(sender, targetPlayer, args[2]);
                 } else {
-                    sender.sendMessage("§c用法: /ferp remove [玩家名] [变量名]");
+                    sender.sendMessage("§c用法: /ferp remove [变量名] 或 /ferp remove [玩家名] [变量名]");
                     return true;
                 }
             case "refresh":
-                if (args.length != 1) {
-                    sender.sendMessage("§c用法: /ferp refresh");
-                    return true;
-                }
-                return handleRefreshCommand(sender);
+                return handleRefreshCommand(sender, args);
             case "reload":
                 if (args.length != 1) {
                     sender.sendMessage("§c用法: /ferp reload");
@@ -442,11 +438,35 @@ public final class FE_RefreshPapi extends JavaPlugin {
         return true;
     }
 
-    private boolean handleRefreshCommand(CommandSender sender) {
-        // 立即执行一次全局占位符刷新
-        refreshGlobalPlaceholders();
-        sender.sendMessage("§a已触发所有全局变量的立即刷新");
-        return true;
+    private boolean handleRefreshCommand(CommandSender sender, String[] args) {
+        if (args.length == 1) {
+            // /ferp refresh * - 刷新所有变量（全局和玩家）
+            refreshPlaceholders(); // 这个方法会刷新所有类型的占位符
+            sender.sendMessage("§a已触发所有变量的立即刷新（全局和玩家特定）");
+            return true;
+        } else if (args.length == 2) {
+            String placeholderName = args[1];
+            PlaceholderData data = placeholders.get(placeholderName);
+            if (data == null) {
+                sender.sendMessage("§c错误：变量 " + placeholderName + " 不存在");
+                return true;
+            }
+            
+            if (data.isPlayerSpecific()) {
+                // 刷新玩家特定占位符
+                refreshPlayerSpecificPlaceholderForAllPlayers(placeholderName);
+                sender.sendMessage("§a已刷新所有玩家的 " + placeholderName + " 变量");
+            } else {
+                // 刷新全局占位符
+                long currentTime = System.currentTimeMillis();
+                refreshGlobalPlaceholder(data, currentTime);
+                sender.sendMessage("§a已刷新全局变量 " + placeholderName);
+            }
+            return true;
+        } else {
+            sender.sendMessage("§c用法: /ferp refresh * (刷新所有变量) 或 /ferp refresh [变量名] (刷新指定变量)");
+            return true;
+        }
     }
 
     private boolean handleReloadCommand(CommandSender sender) {
@@ -523,9 +543,101 @@ public final class FE_RefreshPapi extends JavaPlugin {
 
     private void startRefreshTask() {
         int refreshInterval = 1; // 每秒检查一次是否需要刷新
-        refreshTask = Bukkit.getScheduler().runTaskTimerAsynchronously(this, this::refreshGlobalPlaceholders, 20L, 20L * refreshInterval);
+        refreshTask = Bukkit.getScheduler().runTaskTimerAsynchronously(this, this::refreshPlaceholders, 20L, 20L * refreshInterval);
     }
 
+    private void refreshPlaceholders() {
+        long currentTime = System.currentTimeMillis();
+        
+        // 使用迭代器避免并发修改异常
+        for (Map.Entry<String, PlaceholderData> entry : placeholders.entrySet()) {
+            PlaceholderData data = entry.getValue();
+            
+            if (data.isReadyToRefresh()) {
+                if (data.isPlayerSpecific()) {
+                    // 玩家特定占位符：需要刷新所有已知玩家的值
+                    refreshPlayerSpecificPlaceholder(data, currentTime);
+                } else {
+                    // 全局占位符
+                    refreshGlobalPlaceholder(data, currentTime);
+                }
+            }
+        }
+    }
+    
+    private void refreshGlobalPlaceholder(PlaceholderData data, long currentTime) {
+        // 根据更新规则更新值
+        int newValue;
+        if ("set".equals(data.getUpdateRule())) {
+            // set模式：重置为初始值
+            String path = "refresh_placeholders." + data.getName() + ".initial_value";
+            newValue = getConfig().getInt(path, data.getValue());
+        } else if ("random".equals(data.getUpdateRule())) {
+            // random模式：生成随机值
+            newValue = data.getMinValue() + (int) (Math.random() * (data.getMaxValue() - data.getMinValue() + 1));
+        } else { // 默认为increment
+            // increment模式：当前值加1
+            newValue = data.getValue() + 1;
+        }
+        
+        // 更新数据库
+        databaseManager.updateGlobalValue(data.getName(), newValue);
+        
+        // 更新内存中的值
+        data.setValue(newValue);
+        data.setLastRefreshTime(currentTime);
+        // 重新计算下次刷新时间
+        data.setNextRefreshTime(data.calculateNextRefreshTime());
+        
+        logger.fine("刷新全局变量 " + data.getName() + " 为值 " + newValue);
+    }
+    
+    private void refreshPlayerSpecificPlaceholder(PlaceholderData data, long currentTime) {
+        // 对于increment模式，我们不进行任何值更新，只更新时间戳
+        if ("increment".equals(data.getUpdateRule())) {
+            data.setLastRefreshTime(currentTime);
+            data.setNextRefreshTime(data.calculateNextRefreshTime());
+            return;
+        }
+        
+        // 根据更新规则计算新值
+        int newValue;
+        if ("set".equals(data.getUpdateRule())) {
+            // set模式：重置为初始值
+            String path = "refresh_placeholders." + data.getName() + ".initial_value";
+            newValue = getConfig().getInt(path, data.getValue());
+        } else if ("random".equals(data.getUpdateRule())) {
+            // random模式：生成随机值
+            newValue = data.getMinValue() + (int) (Math.random() * (data.getMaxValue() - data.getMinValue() + 1));
+        } else {
+            // 其他模式，不更新值，只更新时间戳
+            data.setLastRefreshTime(currentTime);
+            data.setNextRefreshTime(data.calculateNextRefreshTime());
+            return;
+        }
+        
+        // 更新所有玩家的该占位符值
+        try {
+            String sql = "UPDATE player_placeholders SET value = ?, last_updated = ? WHERE name = ?";
+            try (java.sql.PreparedStatement pstmt = databaseManager.getConnection().prepareStatement(sql)) {
+                pstmt.setInt(1, newValue);
+                pstmt.setLong(2, currentTime);
+                pstmt.setString(3, data.getName());
+                int rowsUpdated = pstmt.executeUpdate();
+                if (rowsUpdated > 0) {
+                    logger.fine("刷新玩家特定变量 " + data.getName() + "，更新了 " + rowsUpdated + " 个玩家的值为 " + newValue);
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            logger.severe("刷新玩家特定占位符时出错: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        // 更新时间戳
+        data.setLastRefreshTime(currentTime);
+        data.setNextRefreshTime(data.calculateNextRefreshTime());
+    }
+    
     private void refreshGlobalPlaceholders() {
         long currentTime = System.currentTimeMillis();
         
@@ -535,31 +647,46 @@ public final class FE_RefreshPapi extends JavaPlugin {
             
             // 只刷新非玩家特定的占位符
             if (!data.isPlayerSpecific() && data.isReadyToRefresh()) {
-                // 根据更新规则更新值
-                int newValue;
-                if ("set".equals(data.getUpdateRule())) {
-                    // set模式：重置为初始值
-                    String path = "refresh_placeholders." + data.getName() + ".initial_value";
-                    newValue = getConfig().getInt(path, data.getValue());
-                } else if ("random".equals(data.getUpdateRule())) {
-                    // random模式：生成随机值
-                    newValue = data.getMinValue() + (int) (Math.random() * (data.getMaxValue() - data.getMinValue() + 1));
-                } else { // 默认为increment
-                    // increment模式：当前值加1
-                    newValue = data.getValue() + 1;
-                }
-                
-                // 更新数据库
-                databaseManager.updateGlobalValue(data.getName(), newValue);
-                
-                // 更新内存中的值
-                data.setValue(newValue);
-                data.setLastRefreshTime(currentTime);
-                // 重新计算下次刷新时间
-                data.setNextRefreshTime(data.calculateNextRefreshTime());
-                
-                logger.fine("刷新变量 " + data.getName() + " 为值 " + newValue);
+                refreshGlobalPlaceholder(data, currentTime);
             }
+        }
+    }
+    
+    private void refreshPlayerSpecificPlaceholderForAllPlayers(String placeholderName) {
+        // 这个方法用于手动刷新所有玩家的特定占位符
+        PlaceholderData data = placeholders.get(placeholderName);
+        if (data == null || !data.isPlayerSpecific()) {
+            return;
+        }
+        
+        // 根据更新规则计算新值
+        int newValue;
+        if ("set".equals(data.getUpdateRule())) {
+            // set模式：重置为初始值
+            String path = "refresh_placeholders." + data.getName() + ".initial_value";
+            newValue = getConfig().getInt(path, data.getValue());
+        } else if ("random".equals(data.getUpdateRule())) {
+            // random模式：生成随机值
+            newValue = data.getMinValue() + (int) (Math.random() * (data.getMaxValue() - data.getMinValue() + 1));
+        } else {
+            // increment模式：不适用于手动刷新，因为每个玩家的值应该独立
+            logger.warning("玩家特定占位符 " + placeholderName + " 使用increment模式，无法进行全局重置");
+            return;
+        }
+        
+        // 更新所有玩家的该占位符值
+        try {
+            String sql = "UPDATE player_placeholders SET value = ?, last_updated = ? WHERE name = ?";
+            try (java.sql.PreparedStatement pstmt = databaseManager.getConnection().prepareStatement(sql)) {
+                pstmt.setInt(1, newValue);
+                pstmt.setLong(2, System.currentTimeMillis());
+                pstmt.setString(3, placeholderName);
+                int rowsUpdated = pstmt.executeUpdate();
+                logger.info("手动刷新玩家特定变量 " + placeholderName + "，影响了 " + rowsUpdated + " 个玩家，新值为 " + newValue);
+            }
+        } catch (java.sql.SQLException e) {
+            logger.severe("刷新玩家特定占位符时出错: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 

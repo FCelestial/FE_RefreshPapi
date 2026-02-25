@@ -70,7 +70,6 @@ refresh_placeholders:
     # 最大值（仅在random模式下有效）
     max_value: 100
 
-
 # 全局设置
 global_settings:
   # 数据库文件名

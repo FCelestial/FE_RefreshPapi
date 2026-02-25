@@ -110,6 +110,11 @@ public class DatabaseManager {
     }
 
     public int getPlayerValue(OfflinePlayer player, String name, int defaultValue) {
+        if (player == null) {
+            plugin.getLogger().warning("尝试获取null玩家的值");
+            return defaultValue;
+        }
+        
         String sql = "SELECT value FROM player_placeholders WHERE player_uuid = ? AND name = ?";
         
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
@@ -126,6 +131,7 @@ public class DatabaseManager {
             }
         } catch (SQLException e) {
             plugin.getLogger().severe("获取玩家值失败: " + e.getMessage());
+            e.printStackTrace();
             return defaultValue;
         }
     }
