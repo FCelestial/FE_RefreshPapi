@@ -53,12 +53,14 @@ refresh_placeholders:
 #    # 最大值
 #    max_value: 999999
 
-  # 实例配置 - 每天0点刷新的points变量
+  # 实例配置 - 每天0点刷新的全局points变量
   points:
     # 刷新模式: interval(间隔时间) 或 cron(固定时间)
     refresh_mode: "cron"
     # Cron表达式 - 每天0点执行
     cron_expression: "0 0 0 * * ?"
+    # 是否为玩家特定占位符 (默认为false，即全局占位符)
+    player_specific: true
     # 初始值
     initial_value: 2
     # 更新规则 (set: 固定设置为初始值)
@@ -67,6 +69,7 @@ refresh_placeholders:
     min_value: 0
     # 最大值（仅在random模式下有效）
     max_value: 100
+
 
 # 全局设置
 global_settings:

@@ -42,12 +42,24 @@ public class FERPPlaceholderExpansion extends PlaceholderExpansion {
             String placeholderName = params.substring(6);
             PlaceholderData data = plugin.getPlaceholderData(placeholderName);
             if (data != null) {
-                return String.valueOf(data.getValue());
+                if (data.isPlayerSpecific() && player != null) {
+                    // 玩家特定占位符
+                    return String.valueOf(plugin.getPlayerPlaceholderValue(player, placeholderName));
+                } else {
+                    // 全局占位符
+                    return String.valueOf(data.getValue());
+                }
             }
         } else if (params.startsWith("refresh_time_")) {
             String placeholderName = params.substring(13);
             PlaceholderData data = plugin.getPlaceholderData(placeholderName);
-            if (data != null) {
+            if (data != null && player != null && data.isPlayerSpecific()) {
+                // 玩家特定占位符的时间值 - 由于我们没有存储玩家特定的时间，返回当前时间
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                sdf.setTimeZone(TimeZone.getDefault());
+                return sdf.format(new Date());
+            } else if (data != null) {
+                // 全局占位符的时间值
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 sdf.setTimeZone(TimeZone.getDefault());
                 return sdf.format(new Date(data.getLastRefreshTime()));

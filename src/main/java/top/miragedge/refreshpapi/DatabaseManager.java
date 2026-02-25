@@ -1,5 +1,6 @@
 package top.miragedge.refreshpapi;
 
+import org.bukkit.OfflinePlayer;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -31,25 +32,36 @@ public class DatabaseManager {
     }
 
     private void createTables() {
-        String sql = "CREATE TABLE IF NOT EXISTS placeholders (" +
+        // 全局占位符表
+        String globalSql = "CREATE TABLE IF NOT EXISTS global_placeholders (" +
                      "name TEXT PRIMARY KEY NOT NULL, " +
                      "value INTEGER NOT NULL, " +
                      "last_updated INTEGER NOT NULL)";
         
+        // 玩家特定占位符表
+        String playerSql = "CREATE TABLE IF NOT EXISTS player_placeholders (" +
+                     "player_uuid TEXT NOT NULL, " +
+                     "name TEXT NOT NULL, " +
+                     "value INTEGER NOT NULL, " +
+                     "last_updated INTEGER NOT NULL, " +
+                     "PRIMARY KEY (player_uuid, name))";
+        
         try (Statement stmt = connection.createStatement()) {
-            stmt.execute(sql);
+            stmt.execute(globalSql);
+            stmt.execute(playerSql);
             plugin.getLogger().info("数据库表创建成功");
         } catch (SQLException e) {
             plugin.getLogger().severe("创建数据库表失败: " + e.getMessage());
         }
     }
 
-    public int getValue(String name) {
-        return getValue(name, 0); // 默认值为0
+    // 全局占位符操作
+    public int getGlobalValue(String name) {
+        return getGlobalValue(name, 0); // 默认值为0
     }
 
-    public int getValue(String name, int defaultValue) {
-        String sql = "SELECT value FROM placeholders WHERE name = ?";
+    public int getGlobalValue(String name, int defaultValue) {
+        String sql = "SELECT value FROM global_placeholders WHERE name = ?";
         
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, name);
@@ -59,17 +71,17 @@ public class DatabaseManager {
                 return rs.getInt("value");
             } else {
                 // 如果不存在，插入默认值
-                updateValue(name, defaultValue);
+                updateGlobalValue(name, defaultValue);
                 return defaultValue;
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("获取值失败: " + e.getMessage());
+            plugin.getLogger().severe("获取全局值失败: " + e.getMessage());
             return defaultValue;
         }
     }
 
-    public void updateValue(String name, int value) {
-        String sql = "INSERT OR REPLACE INTO placeholders (name, value, last_updated) VALUES (?, ?, ?)";
+    public void updateGlobalValue(String name, int value) {
+        String sql = "INSERT OR REPLACE INTO global_placeholders (name, value, last_updated) VALUES (?, ?, ?)";
         
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, name);
@@ -77,18 +89,70 @@ public class DatabaseManager {
             pstmt.setLong(3, System.currentTimeMillis());
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            plugin.getLogger().severe("更新值失败: " + e.getMessage());
+            plugin.getLogger().severe("更新全局值失败: " + e.getMessage());
         }
     }
 
-    public void removePlaceholder(String name) {
-        String sql = "DELETE FROM placeholders WHERE name = ?";
+    public void removeGlobalPlaceholder(String name) {
+        String sql = "DELETE FROM global_placeholders WHERE name = ?";
         
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, name);
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            plugin.getLogger().severe("移除变量失败: " + e.getMessage());
+            plugin.getLogger().severe("移除全局变量失败: " + e.getMessage());
+        }
+    }
+
+    // 玩家特定占位符操作
+    public int getPlayerValue(OfflinePlayer player, String name) {
+        return getPlayerValue(player, name, 0); // 默认值为0
+    }
+
+    public int getPlayerValue(OfflinePlayer player, String name, int defaultValue) {
+        String sql = "SELECT value FROM player_placeholders WHERE player_uuid = ? AND name = ?";
+        
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, player.getUniqueId().toString());
+            pstmt.setString(2, name);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt("value");
+            } else {
+                // 如果不存在，插入默认值
+                updatePlayerValue(player, name, defaultValue);
+                return defaultValue;
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().severe("获取玩家值失败: " + e.getMessage());
+            return defaultValue;
+        }
+    }
+
+    public void updatePlayerValue(OfflinePlayer player, String name, int value) {
+        String sql = "INSERT OR REPLACE INTO player_placeholders (player_uuid, name, value, last_updated) VALUES (?, ?, ?, ?)";
+        
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, player.getUniqueId().toString());
+            pstmt.setString(2, name);
+            pstmt.setInt(3, value);
+            pstmt.setLong(4, System.currentTimeMillis());
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().severe("更新玩家值失败: " + e.getMessage());
+        }
+    }
+
+    public void removePlayerPlaceholder(OfflinePlayer player, String name) {
+        String sql = "DELETE FROM player_placeholders WHERE player_uuid = ? AND name = ?";
+        
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, player.getUniqueId().toString());
+            pstmt.setString(2, name);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().severe("移除玩家变量失败: " + e.getMessage());
         }
     }
 

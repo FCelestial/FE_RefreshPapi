@@ -3,18 +3,20 @@ package top.miragedge.refreshpapi;
 public class PlaceholderData {
     private String name;
     private String refreshMode; // 刷新模式: interval 或 cron
+    private boolean isPlayerSpecific; // 是否为玩家特定占位符
     private int interval; // 刷新间隔（秒），仅在interval模式下有效
     private String cronExpression; // Cron表达式，仅在cron模式下有效
-    private int value; // 当前值
+    private int value; // 当前值（仅用于全局占位符）
     private String updateRule; // 更新规则 (increment, random, set)
     private int minValue; // 最小值（用于random模式）
     private int maxValue; // 最大值（用于random模式）
     private long lastRefreshTime; // 最后刷新时间
     private long nextRefreshTime; // 下次刷新时间
 
-    public PlaceholderData(String name, String refreshMode, int interval, String cronExpression, int value, String updateRule, int minValue, int maxValue) {
+    public PlaceholderData(String name, String refreshMode, boolean isPlayerSpecific, int interval, String cronExpression, int value, String updateRule, int minValue, int maxValue) {
         this.name = name;
         this.refreshMode = refreshMode;
+        this.isPlayerSpecific = isPlayerSpecific;
         this.interval = interval;
         this.cronExpression = cronExpression;
         this.value = value;
@@ -40,6 +42,14 @@ public class PlaceholderData {
 
     public void setRefreshMode(String refreshMode) {
         this.refreshMode = refreshMode;
+    }
+
+    public boolean isPlayerSpecific() {
+        return isPlayerSpecific;
+    }
+
+    public void setPlayerSpecific(boolean playerSpecific) {
+        isPlayerSpecific = playerSpecific;
     }
 
     public int getInterval() {
