@@ -1,0 +1,78 @@
+# FE_RefreshPapi 配置文件
+# 定时刷新占位符变量配置
+
+refresh_placeholders:
+  # 示例配置 - 服务器在线玩家数计数器
+#  player_count:
+#    # 刷新模式: interval(间隔时间) 或 cron(固定时间)
+#    refresh_mode: "interval"
+#    # 刷新间隔（秒）- 仅在refresh_mode为interval时有效
+#    interval: 30
+#    # Cron表达式 - 仅在refresh_mode为cron时有效
+#    # cron_expression: "0 0 * * * ?"  # 每小时执行
+#    # 初始值
+#    initial_value: 0
+#    # 更新规则 (increment: 每次递增, random: 随机值, set: 固定设置)
+#    update_rule: increment
+#    # 最小值（仅在random模式下有效）
+#    min_value: 0
+#    # 最大值（仅在random模式下有效）
+#    max_value: 100
+#
+#  # 示例配置 - 随机数生成器
+#  random_number:
+#    # 刷新模式: interval(间隔时间) 或 cron(固定时间)
+#    refresh_mode: "interval"
+#    # 刷新间隔（秒）
+#    interval: 10
+#    # Cron表达式 - 仅在refresh_mode为cron时有效
+#    # cron_expression: "0 */2 * * * ?"  # 每2小时执行
+#    # 初始值
+#    initial_value: 50
+#    # 更新规则
+#    update_rule: random
+#    # 最小值
+#    min_value: 1
+#    # 最大值
+#    max_value: 100
+#
+#  # 示例配置 - 服务器运行时间计数器
+#  uptime_counter:
+#    # 刷新模式: interval(间隔时间) 或 cron(固定时间)
+#    refresh_mode: "interval"
+#    # 刷新间隔（秒）
+#    interval: 60
+#    # Cron表达式 - 仅在refresh_mode为cron时有效
+#    # cron_expression: "0 0 0 * * ?"  # 每天0点执行
+#    # 初始值
+#    initial_value: 0
+#    # 更新规则
+#    update_rule: increment
+#    # 最小值
+#    min_value: 0
+#    # 最大值
+#    max_value: 999999
+
+  # 实例配置 - 每天0点刷新的points变量
+  points:
+    # 刷新模式: interval(间隔时间) 或 cron(固定时间)
+    refresh_mode: "cron"
+    # Cron表达式 - 每天0点执行
+    cron_expression: "0 0 0 * * ?"
+    # 初始值
+    initial_value: 2
+    # 更新规则 (set: 固定设置为初始值)
+    update_rule: "set"
+    # 最小值（仅在random模式下有效）
+    min_value: 0
+    # 最大值（仅在random模式下有效）
+    max_value: 100
+
+# 全局设置
+global_settings:
+  # 数据库文件名
+  database_file: "data.db"
+  # 异步刷新（推荐开启以提升性能）
+  async_refresh: true
+  # 刷新线程池大小
+  thread_pool_size: 4

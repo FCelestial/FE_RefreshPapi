@@ -1,0 +1,23 @@
+name: FE_RefreshPapi
+version: '1.0'
+main: top.miragedge.refreshpapi.FE_RefreshPapi
+api-version: '1.21'
+prefix: FE_RefreshPapi
+authors: [ F.windEmiko ]
+description: 自定义占位符变量系统
+website: https://github.com/fwindemiko/FE_RefreshPapi
+
+depend: []
+softdepend: [ PlaceholderAPI ]
+
+commands:
+  ferp:
+    description: FE_RefreshPapi 主命令
+    usage: /<command> [set/add/remove/refresh/reload] [变量名] [数值]
+    permission: ferp.admin
+    aliases: [ refreshpapi ]
+
+permissions:
+  ferp.admin:
+    description: 允许使用所有 FE_RefreshPapi 命令
+    default: op
